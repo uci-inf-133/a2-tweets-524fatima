@@ -41,17 +41,32 @@ class Tweet {
     return "miscellaneous";
   }
 
-  // whether the tweet includes user-written content (usually after a colon)
-  get written(): boolean {
-    return /:\s*\S/.test(this.text);
+  
+    // --- helper: find the first colon that's not part of http(s):// or a time like 12:34
+  private firstRealCommentColonIndex(): number {
+    // remove URLs first
+    const noUrls = this.text.replace(/https?:\/\/\S+/gi, "");
+    // remove timestamps (e.g., 00:15 or 23:47)
+    const noUrlsNoTimes = noUrls.replace(/\b\d{1,2}:\d{2}\b/g, "");
+    // return index of first remaining colon
+    return noUrlsNoTimes.indexOf(":");
   }
 
-  // the user-written portion after the first colon
-  get writtenText(): string {
-    if (!this.written) return "";
-    const m = this.text.match(/:(.*)$/);
-    return (m?.[1] ?? "").trim();
+  // whether the tweet includes user-written content (a real comment after a colon)
+  get written(): boolean {
+    const idx = this.firstRealCommentColonIndex();
+    if (idx === -1) return false;
+    // must have at least one visible character after the colon
+    return /\S/.test(this.text.slice(idx + 1));
   }
+
+  // the user-written portion after the real colon
+  get writtenText(): string {
+    const idx = this.firstRealCommentColonIndex();
+    if (idx === -1) return "";
+    return this.text.slice(idx + 1).trim();
+  }
+
 
   // activity type (run, walk, bike, …) only for completed events
   get activityType(): string {
