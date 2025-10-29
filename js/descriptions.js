@@ -30,9 +30,19 @@ function countEls(selector) {
   return document.querySelectorAll(selector).length;
 }
 
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /** Robustly update the summary sentence above the table.
- *  If the template has placeholders (e.g., .searchCount / .searchText), we fill them.
- *  Otherwise we rewrite the whole sentence that contains "Tweets contain the text".
+ *  1) If the template has placeholders (.searchCount / .searchText ...) we fill them.
+ *  2) Otherwise, we search *all elements* for a line containing "Tweets contain the text"
+ *     (case-insensitive) and rewrite the whole line with correct count & query.
  */
 function updateSearchSummary(raw, count) {
   const countTargets = ['.searchCount', '#searchCount'];
@@ -44,10 +54,20 @@ function updateSearchSummary(raw, count) {
   setAllTextMulti(countTargets, String(count));
   setAllTextMulti(textTargets,  raw);
 
-  if (!hadCount && !hadText) {
-    const candidates = Array.from(document.querySelectorAll('p,div,span,h3,h4'));
-    const line = candidates.find(el => /tweets contain the text/i.test(el.textContent || ''));
-    if (line) line.textContent = `${count} Tweets contain the text '${raw}'.`;
+  if (!hadCount || !hadText) {
+    // Fallback: rewrite any element whose text mentions the phrase
+    const nodes = Array.from(document.querySelectorAll('*'));
+    const needle = /tweets contain the text/i;
+    const safeRaw = escapeHtml(raw);
+
+    for (const node of nodes) {
+      const txt = node.textContent || '';
+      if (needle.test(txt)) {
+        // Use textContent (safe). We don't try to partially replace; we emit a clean line.
+        node.textContent = `${count} Tweets contain the text '${raw}'.`;
+        // If this node also held the numeric part elsewhere, this one rewrite is enough.
+      }
+    }
   }
 }
 
