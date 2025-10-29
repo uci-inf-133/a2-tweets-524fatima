@@ -83,15 +83,22 @@ class Tweet {
 
   // HTML row for the Descriptions page table
   getHTMLTableRow(rowNumber) {
-    const link = firstUrl(this.text);
-    const linkHTML = link ? `<a href="${link}" target="_blank" rel="noopener">Open</a>` : "No link";
-    const userText = this.writtenText || "(no comment)";
-    return `
-      <tr>
-        <td>${rowNumber}</td>
-        <td>${this.activityType}</td>
-        <td>${userText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
-        <td>${linkHTML}</td>
-      </tr>`.trim();
-  }
+  const link = firstUrl(this.text);
+  const linkHTML = link ? `<a href="${link}" target="_blank" rel="noopener">Open</a>` : "No link";
+
+  const activityOrSource =
+    this.source === 'completed_event'
+      ? this.activityType
+      : this.source.replace('_', ' '); // e.g., "achievement", "live event", "miscellaneous"
+
+  const userText = this.writtenText || "(no comment)";
+
+  return `
+    <tr>
+      <td>${rowNumber}</td>
+      <td>${activityOrSource}</td>
+      <td>${userText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
+      <td>${linkHTML}</td>
+    </tr>`.trim();
 }
+
