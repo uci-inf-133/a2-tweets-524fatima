@@ -46,7 +46,7 @@ function escapeHtml(s) {
  */
 function updateSearchSummary(raw, count) {
   const countTargets = ['.searchCount', '#searchCount'];
-  const textTargets  = ['.searchText', '#searchEcho', '.searchQuery', '.queryText'];
+  const textTargets  = ['.searchText', '#searchText', '#searchEcho', '.searchQuery', '.queryText'];
 
   const hadCount = countTargets.some(sel => countEls(sel) > 0);
   const hadText  = textTargets.some(sel  => countEls(sel)  > 0);
