@@ -39,10 +39,10 @@ function escapeHtml(s) {
     .replace(/'/g, '&#39;');
 }
 
-/** Robustly update the summary sentence above the table.
- *  1) If the template has placeholders (.searchCount / .searchText ...) we fill them.
- *  2) Otherwise, we search *all elements* for a line containing "Tweets contain the text"
- *     (case-insensitive) and rewrite the whole line with correct count & query.
+/** Safely update the summary line.
+ *  1) If placeholders exist (.searchCount / .searchText …), fill them.
+ *  2) Otherwise, find a **leaf** element (no children) among p/div/span/h1–h5
+ *     that contains "Tweets contain the text" (case-insensitive) and rewrite only that.
  */
 function updateSearchSummary(raw, count) {
   const countTargets = ['.searchCount', '#searchCount'];
@@ -55,18 +55,22 @@ function updateSearchSummary(raw, count) {
   setAllTextMulti(textTargets,  raw);
 
   if (!hadCount || !hadText) {
-    // Fallback: rewrite any element whose text mentions the phrase
-    const nodes = Array.from(document.querySelectorAll('*'));
     const needle = /tweets contain the text/i;
     const safeRaw = escapeHtml(raw);
 
-    for (const node of nodes) {
-      const txt = node.textContent || '';
-      if (needle.test(txt)) {
-        // Use textContent (safe). We don't try to partially replace; we emit a clean line.
-        node.textContent = `${count} Tweets contain the text '${raw}'.`;
-        // If this node also held the numeric part elsewhere, this one rewrite is enough.
-      }
+    // Only consider leaf elements in common text containers
+    const candidates = Array.from(
+      document.querySelectorAll('p,div,span,h1,h2,h3,h4,h5')
+    ).filter(el =>
+      el !== document.body &&
+      el.children.length === 0 &&
+      needle.test(el.textContent || '')
+    );
+
+    // Pick the first matching leaf; if none, do nothing
+    const target = candidates[0];
+    if (target) {
+      target.textContent = `${count} Tweets contain the text '${raw}'.`;
     }
   }
 }
