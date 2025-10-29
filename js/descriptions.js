@@ -3,6 +3,11 @@ let allTweets = [];
 let writtenTweets = [];
 
 // helpers ---------------------------------------------------
+function setAllTextMulti(selectors, value) {
+  const sel = Array.isArray(selectors) ? selectors : [selectors];
+  sel.forEach(s => document.querySelectorAll(s).forEach(el => el.textContent = value));
+}
+
 function findOne(...selectors) {
   for (const s of selectors) {
     const el = document.querySelector(s);
@@ -15,7 +20,7 @@ function setAllText(selectors, value) {
 }
 function renderRows(rows) {
   const tbody =
-    findOne('#tweetTable') ||                 // starter: <tbody id="tweetTable">
+    findOne('#tweetTable') ||
     findOne('#tweetTableBody') ||
     findOne('#results tbody') ||
     findOne('#tweet-table-body');
@@ -28,28 +33,37 @@ function parseTweets(runkeeper_tweets) {
   if (!Array.isArray(runkeeper_tweets)) { alert('No tweets returned'); return; }
   allTweets = runkeeper_tweets.map(t => new Tweet(t.text, t.created_at));
   writtenTweets = allTweets.filter(t => t.written);  // only those with user text
-  // initial empty state
-  setAllText('.searchCount, #searchCount', '0');
-  setAllText('.searchText,  #searchEcho', '');
+
+  // initial empty state — clear both the count and echoed query
+  setAllTextMulti(['.searchCount', '#searchCount'], '0');
+  setAllTextMulti(['.searchText', '#searchEcho', '.searchQuery', '.queryText'], '');
   renderRows([]);
 }
 
 function addEventHandlerForSearch() {
-  const input =
-    findOne('#textFilter') || // starter id
-    findOne('#searchText');   // your earlier id
+  const input = findOne('#textFilter') || findOne('#searchText');
+  if (!input) return;
 
   const update = () => {
-    const q = (input.value || '').trim().toLowerCase();
+    const raw = (input.value || '').trim();
+    const q = raw.toLowerCase();
+
     if (!q) {
-      setAllText('.searchCount, #searchCount', '0');
-      setAllText('.searchText,  #searchEcho', '');
+      setAllTextMulti(['.searchCount', '#searchCount'], '0');
+      setAllTextMulti(['.searchText', '#searchEcho', '.searchQuery', '.queryText'], '');
       renderRows([]);
       return;
     }
-    const hits = writtenTweets.filter(t => (t.writtenText || '').toLowerCase().includes(q));
-    setAllText('.searchCount, #searchCount', String(hits.length));
-    setAllText('.searchText,  #searchEcho', q);
+
+    // AND-match all words in the query against writtenText
+    const words = q.split(/\s+/).filter(Boolean);
+    const hits = writtenTweets.filter(t => {
+      const text = (t.writtenText || '').toLowerCase();
+      return words.every(w => text.includes(w));
+    });
+
+    setAllTextMulti(['.searchCount', '#searchCount'], String(hits.length));
+    setAllTextMulti(['.searchText', '#searchEcho', '.searchQuery', '.queryText'], raw);
     renderRows(hits);
   };
 
