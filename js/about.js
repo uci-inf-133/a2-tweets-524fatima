@@ -1,60 +1,48 @@
+// js/about.js
 let tweet_array = [];
 
 function setAllByClass(cls, value) {
-  // updates ALL spans with the same class (e.g., completedEvents appears twice)
   document.querySelectorAll(`.${cls}`).forEach(el => el.textContent = value);
 }
 
 function parseTweets(runkeeper_tweets) {
-  if (!runkeeper_tweets) {
-    window.alert('No tweets returned');
-    return;
-  }
+  if (!runkeeper_tweets) { alert('No tweets returned'); return; }
 
-  // Tweet class comes from js/tweet.js (compiled from ts/tweet.ts)
   tweet_array = runkeeper_tweets.map(t => new Tweet(t.text, t.created_at));
 
-  // Total tweets
-  document.getElementById('numberTweets').textContent = String(tweet_array.length);
-
-  // Earliest / latest dates
-  const dates = tweet_array.map(t => t.time).sort((a, b) => a - b);
-  const fmt = d => d.toLocaleDateString(undefined, {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-  });
-  document.getElementById('firstDate').textContent = fmt(dates[0]);
-  document.getElementById('lastDate').textContent  = fmt(dates[dates.length - 1]);
-
-  // Category counts (relies on Tweet.source: 'completed' | 'live' | 'achievement' | 'misc')
+  // totals & dates
   const total = tweet_array.length;
-  const byCat = { completed: 0, live: 0, achievement: 0, misc: 0 };
+  document.getElementById('numberTweets').textContent = String(total);
 
-  tweet_array.forEach(t => byCat[t.source]++);
+  const dates = tweet_array.map(t => t.time).sort((a,b) => a.getTime()-b.getTime());
+  const fmt = d => d.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('firstDate').textContent = fmt(dates[0]);
+  document.getElementById('lastDate').textContent  = fmt(dates[dates.length-1]);
+
+  // counts by source
+  const by = { completed_event: 0, live_event: 0, achievement: 0, miscellaneous: 0 };
+  tweet_array.forEach(t => by[t.source] = (by[t.source] ?? 0) + 1);
 
   const pct = n => (100 * n / total).toFixed(2) + '%';
 
-  setAllByClass('completedEvents', byCat.completed);
-  setAllByClass('completedEventsPct', (100 * byCat.completed / total).toFixed(2) + '%');
+  setAllByClass('completedEvents', by.completed_event);
+  setAllByClass('completedEventsPct', pct(by.completed_event));
 
-  setAllByClass('liveEvents', byCat.live);
-  setAllByClass('liveEventsPct', (100 * byCat.live / total).toFixed(2) + '%');
+  setAllByClass('liveEvents', by.live_event);
+  setAllByClass('liveEventsPct', pct(by.live_event));
 
-  setAllByClass('achievements', byCat.achievement);
-  setAllByClass('achievementsPct', (100 * byCat.achievement / total).toFixed(2) + '%');
+  setAllByClass('achievements', by.achievement);
+  setAllByClass('achievementsPct', pct(by.achievement));
 
-  setAllByClass('miscellaneous', byCat.misc);
-  setAllByClass('miscellaneousPct', (100 * byCat.misc / total).toFixed(2) + '%');
+  setAllByClass('miscellaneous', by.miscellaneous);
+  setAllByClass('miscellaneousPct', pct(by.miscellaneous));
 
-  // Of the completed tweets, how many contain user-written text?
-  // relies on Tweet.written (boolean)
-  const completed = tweet_array.filter(t => t.source === 'completed');
+  // written text among completed events
+  const completed = tweet_array.filter(t => t.source === 'completed_event');
   const completedWithText = completed.filter(t => t.written);
   setAllByClass('written', completedWithText.length);
-  setAllByClass('writtenPct',
-    completed.length ? (100 * completedWithText.length / completed.length).toFixed(2) + '%' : '0.00%');
+  setAllByClass('writtenPct', completed.length ? pct(completedWithText.length) : '0.00%');
 }
 
-// Wait for DOM, then load data and parse
-document.addEventListener('DOMContentLoaded', () => {
-  loadSavedRunkeeperTweets().then(parseTweets);
-});
+// call it after loading tweets
+getSavedTweets().then(parseTweets);  // or loadSavedRunkeeperTweets().then(parseTweets)
