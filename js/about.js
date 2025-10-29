@@ -1,4 +1,3 @@
-// js/about.js
 let tweet_array = [];
 
 function setAllByClass(cls, value) {
@@ -29,7 +28,7 @@ function parseTweets(runkeeper_tweets) {
   if (firstDateEl && dates[0]) firstDateEl.textContent = fmt(dates[0]);
   if (lastDateEl  && dates.length) lastDateEl.textContent  = fmt(dates[dates.length - 1]);
 
-  // Counts by source (must match Tweet.source return values)
+  // Counts by source
   const by = { completed_event: 0, live_event: 0, achievement: 0, miscellaneous: 0 };
   tweet_array.forEach(t => (by[t.source] = (by[t.source] ?? 0) + 1));
 
@@ -47,7 +46,7 @@ function parseTweets(runkeeper_tweets) {
   setAllByClass("miscellaneous",      by.miscellaneous);
   setAllByClass("miscellaneousPct",   pct(by.miscellaneous));
 
-  // Of completed events, how many include user-written text?
+  // Of completed events, how many include user written text?
   const completed = tweet_array.filter(t => t.source === "completed_event");
   const completedWithText = completed.filter(t => t.written);
   setAllByClass("written",    completedWithText.length);
@@ -56,7 +55,7 @@ function parseTweets(runkeeper_tweets) {
     : "0.00%");
 }
 
-// Run after DOM loads – use whichever loader exists in js/get_saved_tweets.js
+// Run after DOM loads
 document.addEventListener("DOMContentLoaded", () => {
   const loader =
     (typeof getSavedTweets === "function") ? getSavedTweets :

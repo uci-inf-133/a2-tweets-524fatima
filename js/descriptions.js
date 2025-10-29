@@ -1,8 +1,7 @@
-// js/descriptions.js
 let allTweets = [];
 let writtenTweets = [];
 
-/* -------------------- helpers -------------------- */
+//helpers
 function findOne(...selectors) {
   for (const s of selectors) {
     const el = document.querySelector(s);
@@ -18,9 +17,9 @@ function setAllTextMulti(selectors, value) {
 
 function renderRows(rows) {
   const tbody =
-    findOne('#tweetTable') ||          // starter id
+    findOne('#tweetTable') ||          
     findOne('#tweetTableBody') ||
-    findOne('#results tbody') ||       // some templates use a wrapper
+    findOne('#results tbody') ||    
     findOne('#tweet-table-body');
   if (!tbody) return;
   tbody.innerHTML = rows.map((t, i) => t.getHTMLTableRow(i + 1)).join('');
@@ -39,11 +38,6 @@ function escapeHtml(s) {
     .replace(/'/g, '&#39;');
 }
 
-/** Safely update the summary line.
- *  1) If placeholders exist (.searchCount / .searchText …), fill them.
- *  2) Otherwise, find a **leaf** element (no children) among p/div/span/h1–h5
- *     that contains "Tweets contain the text" (case-insensitive) and rewrite only that.
- */
 function updateSearchSummary(raw, count) {
   const countTargets = ['.searchCount', '#searchCount'];
   const textTargets  = ['.searchText', '#searchText', '#searchEcho', '.searchQuery', '.queryText'];
@@ -67,7 +61,7 @@ function updateSearchSummary(raw, count) {
       needle.test(el.textContent || '')
     );
 
-    // Pick the first matching leaf; if none, do nothing
+    // Pick the first matching leaf
     const target = candidates[0];
     if (target) {
       target.textContent = `${count} Tweets contain the text '${raw}'.`;
@@ -75,7 +69,7 @@ function updateSearchSummary(raw, count) {
   }
 }
 
-/* ---------------------- core ---------------------- */
+//core
 function parseTweets(runkeeper_tweets) {
   if (!Array.isArray(runkeeper_tweets)) {
     alert('No tweets returned');
@@ -104,7 +98,7 @@ function addEventHandlerForSearch() {
       return;
     }
 
-    // AND-match all words in the query against writtenText
+
     const words = q.split(/\s+/).filter(Boolean);
     const hits = writtenTweets.filter(t => {
       const text = (t.writtenText || '').toLowerCase();
@@ -115,7 +109,6 @@ function addEventHandlerForSearch() {
     renderRows(hits);
   };
 
-  // small debounce for smoother typing
   let timer;
   input.addEventListener('input', () => {
     clearTimeout(timer);
@@ -123,7 +116,7 @@ function addEventHandlerForSearch() {
   });
 }
 
-/* -------------------- bootstrap ------------------- */
+//bootstrap
 document.addEventListener('DOMContentLoaded', () => {
   addEventHandlerForSearch();
 

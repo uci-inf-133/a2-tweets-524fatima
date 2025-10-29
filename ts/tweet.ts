@@ -1,7 +1,3 @@
-// ts/tweet.ts
-// A2 — RunKeeper Tweets
-// Only edit this TypeScript file. The compiled output js/tweet.js is auto-generated.
-
 const KM_TO_MI = 0.621371;
 
 function norm(s: string): string {
@@ -27,14 +23,13 @@ class Tweet {
     const t = norm(this.text);
 
     // Completed events (canonical phrasing in dataset)
-    // e.g., "Just completed a 5.00 mi run with @Runkeeper …"
     if (/^just completed\b/.test(t) && /runkeeper/.test(t)) return "completed_event";
 
-    // Live events (e.g., "live on @Runkeeper", "watch … live")
+    // Live events
     if ((/\blive on\b/.test(t) || /watch\b.*\blive\b/.test(t)) && /runkeeper/.test(t))
       return "live_event";
 
-    // Achievements (e.g., "achieved", "personal record", "PR", "set a goal")
+    // Achievements 
     if (/\b(achiev(ed|ement)|personal\s+record|new\s+record|pr\b|set\s+a\s+goal)\b/.test(t))
       return "achievement";
 
@@ -42,17 +37,17 @@ class Tweet {
   }
 
   
-    // --- helper: find the first colon that's not part of http(s):// or a time like 12:34
+    //helper
   private firstRealCommentColonIndex(): number {
     // remove URLs first
     const noUrls = this.text.replace(/https?:\/\/\S+/gi, "");
-    // remove timestamps (e.g., 00:15 or 23:47)
+    // remove timestamps 
     const noUrlsNoTimes = noUrls.replace(/\b\d{1,2}:\d{2}\b/g, "");
     // return index of first remaining colon
     return noUrlsNoTimes.indexOf(":");
   }
 
-  // whether the tweet includes user-written content (a real comment after a colon)
+  // whether the tweet includes user-written content 
   get written(): boolean {
     const idx = this.firstRealCommentColonIndex();
     if (idx === -1) return false;
@@ -68,12 +63,12 @@ class Tweet {
   }
 
 
-  // activity type (run, walk, bike, …) only for completed events
+  // activity type only for completed events
   get activityType(): string {
     if (this.source !== "completed_event") return "unknown";
 
     const t = norm(this.text);
-    // capture the token after the distance unit
+    // capturing the token after the distance unit
     const m =
       t.match(/completed.*?\b\d+(?:\.\d+)?\s*(?:mi|mile|miles|km|kilometer|kilometers)\s+([a-z]+)/i) ||
       // fallback: capture the word before "with @runkeeper"

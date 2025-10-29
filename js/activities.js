@@ -55,7 +55,7 @@ function parseTweets(runkeeper_tweets) {
               && Number.isFinite(t.distance) && t.distance > 0)
     .map(t => ({ activity: t.activityType, day: dow(t.time), distance: t.distance }));
 
-  // Text summaries (longest/shortest by mean distance)
+  // Text summaries
   const byActivityDistances = {};
   for (const r of distRows) (byActivityDistances[r.activity] ||= []).push(r.distance);
   const activityMeans = Object.entries(byActivityDistances).map(([act, arr]) => [act, mean(arr)]);
