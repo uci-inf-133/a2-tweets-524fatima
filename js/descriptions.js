@@ -2,12 +2,7 @@
 let allTweets = [];
 let writtenTweets = [];
 
-// helpers ---------------------------------------------------
-function setAllTextMulti(selectors, value) {
-  const sel = Array.isArray(selectors) ? selectors : [selectors];
-  sel.forEach(s => document.querySelectorAll(s).forEach(el => el.textContent = value));
-}
-
+/* -------------------- helpers -------------------- */
 function findOne(...selectors) {
   for (const s of selectors) {
     const el = document.querySelector(s);
@@ -15,28 +10,59 @@ function findOne(...selectors) {
   }
   return null;
 }
-function setAllText(selectors, value) {
-  document.querySelectorAll(selectors).forEach(el => el.textContent = value);
+
+function setAllTextMulti(selectors, value) {
+  const sel = Array.isArray(selectors) ? selectors : [selectors];
+  sel.forEach(s => document.querySelectorAll(s).forEach(el => (el.textContent = value)));
 }
+
 function renderRows(rows) {
   const tbody =
-    findOne('#tweetTable') ||
+    findOne('#tweetTable') ||          // starter id
     findOne('#tweetTableBody') ||
-    findOne('#results tbody') ||
+    findOne('#results tbody') ||       // some templates use a wrapper
     findOne('#tweet-table-body');
   if (!tbody) return;
   tbody.innerHTML = rows.map((t, i) => t.getHTMLTableRow(i + 1)).join('');
 }
 
-// core ------------------------------------------------------
-function parseTweets(runkeeper_tweets) {
-  if (!Array.isArray(runkeeper_tweets)) { alert('No tweets returned'); return; }
-  allTweets = runkeeper_tweets.map(t => new Tweet(t.text, t.created_at));
-  writtenTweets = allTweets.filter(t => t.written);  // only those with user text
+function countEls(selector) {
+  return document.querySelectorAll(selector).length;
+}
 
-  // initial empty state — clear both the count and echoed query
-  setAllTextMulti(['.searchCount', '#searchCount'], '0');
-  setAllTextMulti(['.searchText', '#searchEcho', '.searchQuery', '.queryText'], '');
+/** Robustly update the summary sentence above the table.
+ *  If the template has placeholders (e.g., .searchCount / .searchText), we fill them.
+ *  Otherwise we rewrite the whole sentence that contains "Tweets contain the text".
+ */
+function updateSearchSummary(raw, count) {
+  const countTargets = ['.searchCount', '#searchCount'];
+  const textTargets  = ['.searchText', '#searchEcho', '.searchQuery', '.queryText'];
+
+  const hadCount = countTargets.some(sel => countEls(sel) > 0);
+  const hadText  = textTargets.some(sel  => countEls(sel)  > 0);
+
+  setAllTextMulti(countTargets, String(count));
+  setAllTextMulti(textTargets,  raw);
+
+  if (!hadCount && !hadText) {
+    const candidates = Array.from(document.querySelectorAll('p,div,span,h3,h4'));
+    const line = candidates.find(el => /tweets contain the text/i.test(el.textContent || ''));
+    if (line) line.textContent = `${count} Tweets contain the text '${raw}'.`;
+  }
+}
+
+/* ---------------------- core ---------------------- */
+function parseTweets(runkeeper_tweets) {
+  if (!Array.isArray(runkeeper_tweets)) {
+    alert('No tweets returned');
+    return;
+  }
+  allTweets = runkeeper_tweets.map(t => new Tweet(t.text, t.created_at));
+  // only tweets with user-written text
+  writtenTweets = allTweets.filter(t => t.written);
+
+  // initial state
+  updateSearchSummary('', 0);
   renderRows([]);
 }
 
@@ -49,8 +75,7 @@ function addEventHandlerForSearch() {
     const q = raw.toLowerCase();
 
     if (!q) {
-      setAllTextMulti(['.searchCount', '#searchCount'], '0');
-      setAllTextMulti(['.searchText', '#searchEcho', '.searchQuery', '.queryText'], '');
+      updateSearchSummary('', 0);
       renderRows([]);
       return;
     }
@@ -62,12 +87,11 @@ function addEventHandlerForSearch() {
       return words.every(w => text.includes(w));
     });
 
-    setAllTextMulti(['.searchCount', '#searchCount'], String(hits.length));
-    setAllTextMulti(['.searchText', '#searchEcho', '.searchQuery', '.queryText'], raw);
+    updateSearchSummary(raw, hits.length);
     renderRows(hits);
   };
 
-  // small debounce so it feels smooth
+  // small debounce for smoother typing
   let timer;
   input.addEventListener('input', () => {
     clearTimeout(timer);
@@ -75,16 +99,14 @@ function addEventHandlerForSearch() {
   });
 }
 
-// bootstrap -------------------------------------------------
+/* -------------------- bootstrap ------------------- */
 document.addEventListener('DOMContentLoaded', () => {
   addEventHandlerForSearch();
 
-  // support either loader name from the starter
-  const loader = (typeof getSavedTweets === 'function')
-    ? getSavedTweets
-    : (typeof loadSavedRunkeeperTweets === 'function')
-      ? loadSavedRunkeeperTweets
-      : null;
+  const loader =
+    (typeof getSavedTweets === 'function') ? getSavedTweets :
+    (typeof loadSavedRunkeeperTweets === 'function') ? loadSavedRunkeeperTweets :
+    null;
 
   if (!loader) {
     console.error('No tweet loader found (getSavedTweets / loadSavedRunkeeperTweets).');
@@ -92,8 +114,10 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  loader().then(parseTweets).catch(err => {
-    console.error(err);
-    alert('Failed to load tweets.');
-  });
+  loader()
+    .then(parseTweets)
+    .catch(err => {
+      console.error(err);
+      alert('Failed to load tweets.');
+    });
 });
